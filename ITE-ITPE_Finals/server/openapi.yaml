@@ -1,0 +1,2210 @@
+openapi: 3.0.3
+info:
+  title: Artistry API
+  version: 1.0.0
+  description: RESTful API documentation for the Artistry AI-Enhanced E-Commerce
+    Application.
+servers:
+  - url: http://localhost:5000
+    description: Local development server
+tags:
+  - name: General
+  - name: Authentication
+  - name: Products
+  - name: Cart
+  - name: Coupons
+  - name: Checkout
+  - name: Orders
+  - name: Administration
+  - name: Art Kits
+  - name: Compatibility
+  - name: AI Assistant
+  - name: Payment Webhooks
+paths:
+  /:
+    get:
+      tags:
+        - General
+      summary: API welcome endpoint
+      responses:
+        "200":
+          description: API information
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - success
+                  - message
+                  - version
+                properties:
+                  success:
+                    type: boolean
+                  message:
+                    type: string
+                  version:
+                    type: string
+              example:
+                success: true
+                message: Welcome to the Artistry API!
+                version: v1
+  /api/v1/auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a customer account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                  minLength: 2
+                  maxLength: 120
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 8
+                  maxLength: 72
+      responses:
+        "201":
+          description: Account successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                token: example-jwt-token
+                user:
+                  id: 1
+                  name: Example Customer
+                  email: customer@example.com
+                  role: customer
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "409":
+          description: Email already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Log in to an account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                token: <JWT>
+                user:
+                  id: 3
+                  name: Example Customer
+                  email: customer@example.com
+                  role: customer
+        "400":
+          description: Required credentials are missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "429":
+          description: Login rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/auth/me:
+    get:
+      tags:
+        - Authentication
+      summary: Get the authenticated user's account
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Authenticated user information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                user:
+                  id: 3
+                  name: Example Customer
+                  email: customer@example.com
+                  role: customer
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/products:
+    get:
+      tags:
+        - Products
+      summary: Retrieve active products
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+            minimum: 0
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+            minimum: 0
+        - name: sort
+          in: query
+          description: Allowed values are name, price, newest, and stock.
+          schema:
+            type: string
+            enum:
+              - name
+              - price
+              - newest
+              - stock
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum:
+              - ASC
+              - DESC
+      responses:
+        "200":
+          description: Paginated product list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                products:
+                  - id: 1
+                    name: Watercolor Paint Set
+                    price: 450
+                    stock: 20
+                pagination:
+                  page: 1
+                  limit: 50
+                  total: 1
+                  pages: 1
+        "400":
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/products/{id}:
+    get:
+      tags:
+        - Products
+      summary: Retrieve a product by ID
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                product:
+                  id: 1
+                  name: Watercolor Paint Set
+                  price: 450
+                  stock: 20
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/categories:
+    get:
+      tags:
+        - Products
+      summary: Retrieve product categories
+      responses:
+        "200":
+          description: Category list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                categories:
+                  - id: 1
+                    name: Painting
+  /api/v1/cart:
+    get:
+      tags:
+        - Cart
+      summary: Retrieve the authenticated user's cart
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Cart contents
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                cart:
+                  id: 1
+                  items:
+                    - id: 1
+                      name: Watercolor Paint Set
+                      price: 450
+                      stock: 20
+                      quantity: 1
+                      lineTotal: 450
+                  itemCount: 1
+                  subtotal: 450
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+    delete:
+      tags:
+        - Cart
+      summary: Clear the authenticated user's cart
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Cart cleared
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                cart:
+                  id: 1
+                  items: []
+                  itemCount: 0
+                  subtotal: 0
+  /api/v1/cart/items:
+    post:
+      tags:
+        - Cart
+      summary: Add a product to the cart
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - productId
+              properties:
+                productId:
+                  type: integer
+                quantity:
+                  type: integer
+                  minimum: 1
+                  maximum: 99
+                  default: 1
+      responses:
+        "201":
+          description: Product added to cart
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                cart:
+                  id: 1
+                  items:
+                    - id: 1
+                      name: Example Watercolor Set
+                      category: Painting
+                      price: 450
+                      stock: 20
+                      imageUrl: null
+                      quantity: 1
+                      lineTotal: 450
+                  itemCount: 1
+                  subtotal: 450
+        "400":
+          description: Invalid product or quantity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "409":
+          description: Insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/cart/items/{productId}:
+    patch:
+      tags:
+        - Cart
+      summary: Update a cart item's quantity
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - quantity
+              properties:
+                quantity:
+                  type: integer
+                  minimum: 1
+                  maximum: 99
+      responses:
+        "200":
+          description: Cart updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                cart:
+                  id: 1
+                  items:
+                    - id: 1
+                      name: Watercolor Paint Set
+                      price: 450
+                      quantity: 2
+                      lineTotal: 900
+                  itemCount: 2
+                  subtotal: 900
+        "404":
+          description: Cart item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "409":
+          description: Insufficient stock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+    delete:
+      tags:
+        - Cart
+      summary: Remove a product from the cart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Cart updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                cart:
+                  id: 1
+                  items: []
+                  itemCount: 0
+                  subtotal: 0
+  /api/v1/coupons/validate:
+    post:
+      tags:
+        - Coupons
+      summary: Validate a coupon
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - code
+                - subtotal
+              properties:
+                code:
+                  type: string
+                subtotal:
+                  type: number
+                  minimum: 0
+      responses:
+        "200":
+          description: Coupon validation result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                coupon:
+                  code: EXAMPLE10
+                  discountType: percentage
+                  discountValue: 10
+                discountAmount: 45
+                subtotalAfterDiscount: 405
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "422":
+          description: Coupon invalid or customer usage limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/checkout:
+    post:
+      tags:
+        - Checkout
+      summary: Create a Maya checkout session
+      description: The server calculates prices, discounts, shipping fees, and totals.
+        An idempotency key is required.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 100
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - shippingAddress
+              properties:
+                shippingAddress:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
+                couponCode:
+                  type: string
+      responses:
+        "200":
+          description: Existing checkout session returned for the same idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                message: Existing checkout session returned.
+                idempotent: true
+                checkoutUrl: https://example.invalid/checkout
+                order:
+                  id: 1
+                  orderNumber: EXAMPLE-ORDER-001
+                  status: pending_payment
+                  subtotal: 450
+                  discountAmount: 0
+                  shippingFee: 80
+                  total: 530
+                  shippingAddress: Example shipping address
+                  items: []
+        "201":
+          description: Checkout session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                message: Maya Checkout created successfully.
+                idempotent: false
+                checkoutUrl: https://example.invalid/checkout
+                order:
+                  id: 1
+                  orderNumber: EXAMPLE-ORDER-001
+                  status: pending_payment
+                  subtotal: 450
+                  discountAmount: 0
+                  shippingFee: 80
+                  total: 530
+                  shippingAddress: Example shipping address
+                  items:
+                    - productName: Watercolor Paint Set
+                      quantity: 1
+                      unitPrice: 450
+                      lineTotal: 450
+        "400":
+          description: Invalid checkout details or idempotency key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "409":
+          description: Checkout session unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/orders:
+    get:
+      tags:
+        - Orders
+      summary: Retrieve the authenticated user's orders
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Customer order list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                orders: []
+  /api/v1/orders/{id}:
+    get:
+      tags:
+        - Orders
+      summary: Retrieve an order by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Order details and status history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                order:
+                  id: 1
+                  orderNumber: EXAMPLE-ORDER-001
+                  status: pending_payment
+                  items: []
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/orders/{id}/retry-payment:
+    post:
+      tags:
+        - Orders
+      summary: Retry payment for an order
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Payment retry result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                message: A new Maya payment session has been created.
+                checkoutUrl: https://example.invalid/checkout
+                order:
+                  id: 1
+                  orderNumber: EXAMPLE-ORDER-001
+                  status: pending_payment
+                  total: 530
+                  expiresAt: 2026-11-20T12:00:00.000Z
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/orders/{id}/cancel:
+    patch:
+      tags:
+        - Orders
+      summary: Cancel an eligible order
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Order cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                message: Order cancelled successfully.
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "409":
+          description: Order cannot be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/admin/dashboard:
+    get:
+      tags:
+        - Administration
+      summary: Retrieve dashboard statistics
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                stats:
+                  products: 26
+                  customers: 4
+                  orders: 19
+                  revenue: 4610
+                  lowStock: 1
+                  pendingOrders: 2
+                recentOrders: []
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "403":
+          description: Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/admin/payment-mismatches:
+    get:
+      tags:
+        - Administration
+      summary: Retrieve payment mismatches
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Payment mismatch records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                mismatches: []
+                pagination:
+                  page: 1
+                  limit: 20
+                  total: 0
+                  pages: 0
+  /api/v1/admin/products:
+    get:
+      tags:
+        - Administration
+      summary: Retrieve products for administration
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Product list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                products:
+                  - id: 1
+                    name: Watercolor Paint Set
+                    price: 450
+                    stock: 20
+                pagination:
+                  page: 1
+                  limit: 20
+                  total: 1
+                  pages: 1
+    post:
+      tags:
+        - Administration
+      summary: Create a product
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/CreateProduct"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                product:
+                  id: 27
+                  name: Example Art Product
+                  category: Painting
+                  price: 450
+                  stock: 20
+                  description: Illustrative product example
+                  imageUrl: null
+                  isActive: true
+        "400":
+          description: Invalid product data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/admin/products/{id}:
+    put:
+      tags:
+        - Administration
+      summary: Update a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        $ref: "#/components/requestBodies/UpdateProduct"
+      responses:
+        "200":
+          description: Product updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                product:
+                  id: 1
+                  name: Example Product
+                  category: Painting
+                  price: 450
+                  stock: 20
+        "400":
+          description: Invalid product data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+    delete:
+      tags:
+        - Administration
+      summary: Deactivate a product
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Product deactivated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                message: Product deactivated.
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/admin/inventory/{productId}/adjust:
+    post:
+      tags:
+        - Administration
+      summary: Adjust product inventory
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        $ref: "#/components/requestBodies/InventoryAdjustment"
+      responses:
+        "200":
+          description: Inventory adjustment result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryAdjustmentResponse"
+              example:
+                success: true
+                product:
+                  id: 1
+                  name: Watercolor Paint Set
+                  stock: 21
+                adjustment:
+                  change: 1
+                  previousStock: 20
+                  newStock: 21
+                  reason: Stock correction
+        "409":
+          description: Invalid stock adjustment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/admin/inventory/adjustments:
+    get:
+      tags:
+        - Administration
+      summary: Retrieve inventory adjustment records
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Inventory adjustment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                adjustments: []
+  /api/v1/admin/orders:
+    get:
+      tags:
+        - Administration
+      summary: Retrieve and filter customer orders
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Order list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                orders: []
+  /api/v1/admin/orders/{id}/status:
+    patch:
+      tags:
+        - Administration
+      summary: Update an order's status
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        $ref: "#/components/requestBodies/OrderStatusUpdate"
+      responses:
+        "200":
+          description: Order status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                message: Order status updated successfully.
+                order:
+                  id: 1
+                  status: processing
+        "400":
+          description: Invalid status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "404":
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "409":
+          description: Invalid status transition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/admin/coupons:
+    get:
+      tags:
+        - Administration
+      summary: Retrieve coupons
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Coupon list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                coupons: []
+    post:
+      tags:
+        - Administration
+      summary: Create a coupon
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/CreateCoupon"
+      responses:
+        "201":
+          description: Coupon created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                coupon:
+                  id: 1
+                  code: EXAMPLE10
+                  discountType: percentage
+                  discountValue: 10
+                  minimumSpend: 0
+                  usageLimit: 100
+                  perCustomerLimit: 1
+                  isActive: true
+        "400":
+          description: Invalid coupon data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/admin/coupons/{id}:
+    patch:
+      tags:
+        - Administration
+      summary: Update a coupon
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        $ref: "#/components/requestBodies/UpdateCoupon"
+      responses:
+        "200":
+          description: Coupon updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                coupon:
+                  id: 1
+                  code: EXAMPLE10
+                  isActive: false
+        "404":
+          description: Coupon not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/admin/categories:
+    get:
+      tags:
+        - Administration
+      summary: Retrieve categories for administration
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Category list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                categories: []
+    post:
+      tags:
+        - Administration
+      summary: Create a category
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/CreateCategory"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                category:
+                  id: 1
+                  name: Painting
+                  description: Painting supplies
+        "400":
+          description: Invalid category data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/admin/categories/{id}:
+    put:
+      tags:
+        - Administration
+      summary: Update a category
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        $ref: "#/components/requestBodies/UpdateCategory"
+      responses:
+        "200":
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                category:
+                  id: 1
+                  name: Painting
+        "404":
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+    delete:
+      tags:
+        - Administration
+      summary: Delete a category
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Category deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                message: Category deleted.
+        "404":
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/art-kits:
+    get:
+      tags:
+        - Art Kits
+      summary: Retrieve the authenticated user's art kits
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: User's art kits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                data: []
+    post:
+      tags:
+        - Art Kits
+      summary: Create an art kit
+      security:
+        - bearerAuth: []
+      requestBody:
+        $ref: "#/components/requestBodies/CreateArtKit"
+      responses:
+        "201":
+          description: Art kit created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArtKitResponse"
+              example:
+                success: true
+                data:
+                  id: 1
+                  name: Example Art Kit
+        "400":
+          description: Invalid kit data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/art-kits/{id}:
+    get:
+      tags:
+        - Art Kits
+      summary: Retrieve an owned art kit
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Art kit details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                data:
+                  id: 1
+                  name: Example Art Kit
+                  items: []
+        "400":
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "404":
+          description: Art kit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+    patch:
+      tags:
+        - Art Kits
+      summary: Update an owned art kit
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      requestBody:
+        $ref: "#/components/requestBodies/UpdateArtKit"
+      responses:
+        "200":
+          description: Art kit updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                data:
+                  id: 1
+                  name: Updated Art Kit
+                  items: []
+        "400":
+          description: Invalid kit data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "404":
+          description: Art kit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+    delete:
+      tags:
+        - Art Kits
+      summary: Delete an owned art kit
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Art kit deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                message: Art kit deleted successfully.
+        "400":
+          description: Invalid ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "404":
+          description: Art kit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/art-kits/{id}/add-to-cart:
+    post:
+      tags:
+        - Art Kits
+      summary: Add an owned art kit's products to the existing cart
+      description: >
+        Adds each available product in the kit to the user's existing cart using
+        the quantities saved in the kit. Inactive, out-of-stock, insufficient-stock
+        (kit quantity plus quantity already in the cart) and over-99 lines are skipped
+        and listed under "skipped". The cart still has to be reviewed and checked out normally.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Kit processed. Some or all products may have been skipped.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                data:
+                  kitId: 1
+                  added:
+                    - productId: 3
+                      name: Digital Stylus Pen
+                      quantity: 2
+                      cartQuantity: 2
+                  skipped:
+                    - productId: 7
+                      name: Stylus Nib Set
+                      quantity: 5
+                      reason: INSUFFICIENT_STOCK
+                      message: "Stylus Nib Set: only 3 in stock, but the kit needs 5."
+        "400":
+          description: Invalid ID or empty kit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: This kit has no products to add.
+        "404":
+          description: Art kit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: Art kit not found.
+  /api/v1/compatibility/tablets:
+    get:
+      tags:
+        - Compatibility
+      summary: Retrieve compatible tablet products
+      responses:
+        "200":
+          description: Tablet compatibility information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                data:
+                  - id: 1
+                    name: Example Tablet
+                    description: Example tablet product
+  /api/v1/compatibility/tablets/{id}/accessories:
+    get:
+      tags:
+        - Compatibility
+      summary: Retrieve accessories compatible with a tablet
+      parameters:
+        - $ref: "#/components/parameters/ResourceId"
+      responses:
+        "200":
+          description: Compatible accessories
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                data:
+                  - id: 2
+                    name: Example Accessory
+                    compatibilityNotes: Compatible with this tablet
+        "400":
+          description: Invalid tablet ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/ai/ask:
+    post:
+      tags:
+        - AI Assistant
+      summary: Ask the Artistry AI Assistant
+      description: Questions are limited to 1000 characters. Responses may include
+        verified product recommendations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - question
+              properties:
+                question:
+                  type: string
+                  maxLength: 1000
+      responses:
+        "200":
+          description: AI answer and verified product recommendations
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - answer
+                  - products
+                properties:
+                  answer:
+                    type: string
+                  products:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                additionalProperties: true
+              example:
+                answer: Here are some art supplies that may help.
+                products: []
+        "400":
+          description: Invalid or excessively long question
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "429":
+          description: AI rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "503":
+          description: AI service temporarily unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+  /api/v1/webhooks/maya:
+    post:
+      tags:
+        - Payment Webhooks
+      summary: Receive a Maya payment webhook
+      description: Webhook authenticity is checked using the Maya signature and
+        timestamp headers.
+      parameters:
+        - name: X-Maya-Webhook-Signature
+          in: header
+          required: true
+          schema:
+            type: string
+        - name: X-Maya-Webhook-Timestamp
+          in: header
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Webhook processed, ignored, or recorded for review
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+              example:
+                success: true
+                message: Webhook processed.
+        "400":
+          description: Payment verification mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "401":
+          description: Invalid webhook signature or timestamp
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+        "500":
+          description: Webhook processing failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+              example:
+                success: false
+                error:
+                  code: REQUEST_ERROR
+                  message: The request could not be completed.
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+  requestBodies:
+    GenericObject:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: true
+    CreateProduct:
+      required: true
+      description: Product details. All four core fields are required.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProductInput"
+    UpdateProduct:
+      required: true
+      description: Product fields to update; the server validates the merged product.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ProductUpdateInput"
+    InventoryAdjustment:
+      required: true
+      description: A non-zero stock change and its reason.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/InventoryAdjustmentInput"
+    OrderStatusUpdate:
+      required: true
+      description: The requested order status and optional note.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/OrderStatusInput"
+    CreateCoupon:
+      required: true
+      description: Coupon configuration.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CouponInput"
+    UpdateCoupon:
+      required: true
+      description: Only the coupon active state can be changed through this endpoint.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CouponUpdateInput"
+    CreateCategory:
+      required: true
+      description: Category name and optional description.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CategoryInput"
+    UpdateCategory:
+      required: true
+      description: Updated category name and optional description.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/CategoryInput"
+    CreateArtKit:
+      required: true
+      description: Art kit details and at least one product item.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ArtKitInput"
+    UpdateArtKit:
+      required: true
+      description: Optional art kit details to update.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ArtKitUpdateInput"
+  schemas:
+    ApiError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: REQUEST_ERROR
+            message:
+              type: string
+              example: The request could not be completed.
+        message:
+          type: string
+      additionalProperties: true
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+      additionalProperties: true
+    ProductInput:
+      type: object
+      required:
+        - name
+        - category
+        - price
+        - stock
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 255
+        category:
+          type: string
+          maxLength: 100
+        price:
+          type: number
+          minimum: 0
+        stock:
+          type: integer
+          minimum: 0
+        description:
+          type: string
+          nullable: true
+        imageUrl:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+          default: true
+    ProductUpdateInput:
+      allOf:
+        - $ref: "#/components/schemas/ProductInput"
+      description: Product fields are merged with the existing product before validation.
+    InventoryAdjustmentInput:
+      type: object
+      required:
+        - change
+        - reason
+      properties:
+        change:
+          type: integer
+          minimum: -100000
+          maximum: 100000
+          not:
+            enum:
+              - 0
+        reason:
+          type: string
+          minLength: 3
+          maxLength: 255
+    OrderStatusInput:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - pending_payment
+            - paid
+            - processing
+            - shipped
+            - completed
+            - cancelled
+            - refunded
+        note:
+          type: string
+          maxLength: 255
+      description: The API does not allow administrators to mark an order as paid;
+        verified Maya processing handles that.
+    CouponInput:
+      type: object
+      required:
+        - code
+        - discountType
+        - discountValue
+      properties:
+        code:
+          type: string
+          pattern: ^[A-Z0-9_-]{3,50}$
+        discountType:
+          type: string
+          enum:
+            - percentage
+            - fixed
+        discountValue:
+          type: number
+          exclusiveMinimum: 0
+        minimumSpend:
+          type: number
+          minimum: 0
+          default: 0
+        usageLimit:
+          type: integer
+          minimum: 1
+          nullable: true
+        perCustomerLimit:
+          type: integer
+          minimum: 1
+          nullable: true
+        expiresAt:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+          default: true
+    CouponUpdateInput:
+      type: object
+      properties:
+        isActive:
+          type: boolean
+      additionalProperties: false
+    CategoryInput:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 2
+          maxLength: 100
+        description:
+          type: string
+          nullable: true
+    ArtKitItemInput:
+      type: object
+      required:
+        - productId
+        - quantity
+      properties:
+        productId:
+          type: integer
+          minimum: 1
+        quantity:
+          type: integer
+          minimum: 1
+    ArtKitInput:
+      type: object
+      required:
+        - name
+        - items
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          nullable: true
+        kitType:
+          type: string
+          maxLength: 60
+          nullable: true
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ArtKitItemInput"
+    ArtKitUpdateInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 120
+        description:
+          type: string
+          nullable: true
+        kitType:
+          type: string
+          maxLength: 60
+          nullable: true
+    ArtKitResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Example Art Kit
+          additionalProperties: true
+    InventoryAdjustmentResponse:
+      type: object
+      required:
+        - success
+        - product
+        - adjustment
+      properties:
+        success:
+          type: boolean
+          example: true
+        product:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: Watercolor Paint Set
+            stock:
+              type: integer
+              example: 21
+          additionalProperties: true
+        adjustment:
+          type: object
+          required:
+            - change
+            - previousStock
+            - newStock
+            - reason
+          properties:
+            change:
+              type: integer
+              example: 1
+            previousStock:
+              type: integer
+              example: 20
+            newStock:
+              type: integer
+              example: 21
+            reason:
+              type: string
+              example: Stock correction
