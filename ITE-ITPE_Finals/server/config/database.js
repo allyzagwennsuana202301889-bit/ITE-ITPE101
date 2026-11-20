@@ -1,6 +1,16 @@
 
 const { Sequelize } = require("sequelize");
+const fs = require("fs");
 require("dotenv").config();
+
+const dialectOptions = {};
+
+if (process.env.DB_SSL_CA_PATH) {
+  dialectOptions.ssl = {
+    ca: fs.readFileSync(process.env.DB_SSL_CA_PATH, "utf8"),
+    rejectUnauthorized: true,
+  };
+}
 
 const sequelize = new Sequelize(
   process.env.DB_NAME,
@@ -12,6 +22,7 @@ const sequelize = new Sequelize(
     dialect: "mysql",
     timezone: "+08:00",
     logging: false,
+    dialectOptions,
   }
 );
 
