@@ -5,6 +5,8 @@ info:
   description: RESTful API documentation for the Artistry AI-Enhanced E-Commerce
     Application.
 servers:
+  - url: https://ite-itpe101.onrender.com
+    description: Production server (Render)
   - url: http://localhost:5000
     description: Local development server
 tags:
