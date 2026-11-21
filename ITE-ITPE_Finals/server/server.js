@@ -100,6 +100,22 @@ app.get("/api/v1/products", async (req, res, next) => {
       where.category = String(req.query.category).trim().slice(0, 100);
     }
 
+    if (req.query.categoryId !== undefined) {
+  const categoryId = Number(req.query.categoryId);
+
+  if (!Number.isInteger(categoryId) || categoryId <= 0) {
+    return res.status(400).json({
+      success: false,
+      error: {
+        code: "VALIDATION_ERROR",
+        message: "categoryId must be a positive integer.",
+      },
+    });
+  }
+
+  where.categoryId = categoryId;
+}
+
     if (
       req.query.minPrice !== undefined ||
       req.query.maxPrice !== undefined
