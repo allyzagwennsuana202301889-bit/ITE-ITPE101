@@ -1367,17 +1367,41 @@ footer .brand {
 }
 
 .compatibility-tablet-select {
+  display: flex;
+  align-items: center;
   width: 100%;
   min-height: 52px;
   padding: 12px 44px 12px 16px;
-  appearance: none;
   border: 1px solid #e5ded3;
   border-radius: 12px;
   background-color: #fffdf9;
   color: #29251f;
   font: inherit;
+  text-align: left;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.compatibility-tablet-selected-value {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.compatibility-tablet-selected-value img {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.compatibility-tablet-selected-value > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .compatibility-tablet-controls {
@@ -1386,7 +1410,7 @@ footer .brand {
 
 .compatibility-tablet-controls::after {
   position: absolute;
-  top: 20px;
+  top: 21px;
   right: 18px;
   width: 9px;
   height: 9px;
@@ -1395,6 +1419,12 @@ footer .brand {
   content: "";
   pointer-events: none;
   transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.compatibility-tablet-controls.is-open::after {
+  top: 25px;
+  transform: rotate(225deg);
 }
 
 .compatibility-tablet-select:hover {
@@ -1407,9 +1437,101 @@ footer .brand {
   box-shadow: 0 0 0 3px rgba(199, 123, 88, 0.18);
 }
 
-.compatibility-tablet-select option {
+.compatibility-tablet-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  z-index: 40;
+  width: 100%;
+  max-width: 100%;
+  max-height: min(240px, 40vh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid #eee9df;
+  border-radius: 12px;
   background: #fffdf9;
+  box-shadow: 0 14px 34px rgba(41, 37, 31, 0.18);
+}
+
+.compatibility-tablet-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 11px 12px;
+  border-radius: 8px;
   color: #29251f;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.compatibility-tablet-option img {
+  flex: 0 0 42px;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #eee9df;
+  border-radius: 8px;
+  background: #fff;
+  object-fit: contain;
+}
+
+.compatibility-tablet-option span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.compatibility-tablet-option:hover,
+.compatibility-tablet-option[data-active="true"] {
+  background: #faf3eb;
+}
+
+.compatibility-tablet-option[aria-selected="true"] {
+  background: #f8e5df;
+  color: #8d4e38;
+  font-weight: 600;
+}
+
+@media (min-width: 1101px) {
+  .shop-section .compatibility-tablet-controls {
+    max-width: 420px;
+  }
+
+  .compatibility-tablet-select {
+    min-height: 48px;
+    padding: 8px 42px 8px 14px;
+  }
+
+  .compatibility-tablet-selected-value img {
+    flex-basis: 30px;
+    width: 30px;
+    height: 30px;
+  }
+
+  .compatibility-tablet-controls::after {
+    top: 19px;
+  }
+
+  .compatibility-tablet-controls.is-open::after {
+    top: 23px;
+  }
+
+  .compatibility-tablet-menu {
+    max-height: min(320px, 55vh);
+  }
+
+  .compatibility-tablet-option {
+    min-height: 40px;
+    gap: 8px;
+    padding: 6px 10px;
+  }
+
+  .compatibility-tablet-option img {
+    flex-basis: 32px;
+    width: 32px;
+    height: 32px;
+  }
 }
 
 /* Art Kit Builder: searchable product selector (overlay dropdown) */

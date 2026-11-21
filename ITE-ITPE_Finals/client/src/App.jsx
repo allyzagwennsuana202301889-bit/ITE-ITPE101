@@ -34,6 +34,8 @@ const productImages = {
   "Alcohol Marker Set": "alchoholmarker.jpg",
   "Drawing Pencil Kit": "drawingpencilkit.jpg",
   "XP-PEN Drawing Tablet": "drawingtabletxppen.jpg",
+  "Apple iPad": "Apple-iPad-10th-gen-hero-221018_Full-Bleed-Image.jpg.large.jpg",
+  "Samsung Galaxy Tab": "galaxytab.jpg",
   "Digital Stylus Pen": "styluspen.png",
   "Gouache Paint Set": "guache.jpg",
   "Watercolor Paper Pad": "watercolorpaper.jpg",
@@ -70,6 +72,173 @@ async function fetchCompatibleAccessories(tabletProductId, options = {}) {
     throw new Error("The compatibility API returned an unexpected response.");
   }
   return result.data;
+}
+
+function CompatibilityTabletDropdown({
+  tablets,
+  selectedTabletId,
+  onChange,
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const dropdownRef = useRef(null);
+  const menuRef = useRef(null);
+  const options = [
+    { id: "", name: "Select a drawing tablet" },
+    ...tablets,
+  ];
+  const selectedIndex = options.findIndex(
+    (option) => String(option.id) === String(selectedTabletId)
+  );
+  const selectedOption = selectedIndex >= 0 ? options[selectedIndex] : options[0];
+  const activeOption = options[activeIndex];
+  const selectedImage =
+    selectedIndex > 0 ? getProductImage(selectedOption) : null;
+  const menuId = "compatibility-tablet-options";
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    function closeOnOutsidePointer(event) {
+      if (!dropdownRef.current?.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () =>
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !menuRef.current) return;
+
+    menuRef.current
+      .querySelector(`[data-option-index="${activeIndex}"]`)
+      ?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex, isOpen]);
+
+  function chooseOption(option) {
+    onChange(String(option.id));
+    setIsOpen(false);
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+
+      if (!isOpen) {
+        setActiveIndex(
+          selectedIndex >= 0
+            ? selectedIndex
+            : direction > 0
+              ? 0
+              : options.length - 1
+        );
+        setIsOpen(true);
+      } else {
+        setActiveIndex(
+          (index) => (index + direction + options.length) % options.length
+        );
+      }
+      return;
+    }
+
+    if (event.key === "Home" || event.key === "End") {
+      event.preventDefault();
+      setActiveIndex(event.key === "Home" ? 0 : options.length - 1);
+      setIsOpen(true);
+      return;
+    }
+
+    if (event.key === "Escape" && isOpen) {
+      event.preventDefault();
+      setIsOpen(false);
+      return;
+    }
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      if (isOpen && activeOption) {
+        chooseOption(activeOption);
+      } else {
+        setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+        setIsOpen(true);
+      }
+    }
+  }
+
+  return (
+    <div
+      className={`compatibility-tablet-controls${isOpen ? " is-open" : ""}`}
+      ref={dropdownRef}
+      onBlur={(event) => {
+        if (
+          event.relatedTarget &&
+          !event.currentTarget.contains(event.relatedTarget)
+        ) {
+          setIsOpen(false);
+        }
+      }}
+    >
+      <button
+        type="button"
+        className="compatibility-tablet-select"
+        role="combobox"
+        aria-label="Select a drawing tablet"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={menuId}
+        aria-activedescendant={
+          isOpen ? `compatibility-tablet-option-${activeIndex}` : undefined
+        }
+        onClick={() => {
+          if (isOpen) {
+            setIsOpen(false);
+          } else {
+            setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+            setIsOpen(true);
+          }
+        }}
+        onKeyDown={handleKeyDown}
+      >
+        <span className="compatibility-tablet-selected-value">
+          {selectedImage && <img src={selectedImage} alt="" />}
+          <span>{selectedOption.name}</span>
+        </span>
+      </button>
+
+      {isOpen && (
+        <div
+          className="compatibility-tablet-menu"
+          id={menuId}
+          role="listbox"
+          aria-label="Available drawing tablets"
+          ref={menuRef}
+        >
+          {options.map((option, index) => (
+            <div
+              className="compatibility-tablet-option"
+              data-active={index === activeIndex}
+              data-option-index={index}
+              id={`compatibility-tablet-option-${index}`}
+              key={option.id || "placeholder"}
+              role="option"
+              aria-selected={String(option.id) === String(selectedTabletId)}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => chooseOption(option)}
+            >
+              {getProductImage(option) && (
+                <img src={getProductImage(option)} alt="" loading="lazy" />
+              )}
+              <span>{option.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function isDrawingTabletProduct(product) {
@@ -1047,11 +1216,11 @@ function App() {
                       Admin
                     </button>
                   )}
-                  <button type="button" onClick={() => { setTabletAccountOpen(false); handleLogout(); }}>
-                    Log out
-                  </button>
                   <button type="button" className="tablet-menu-cart" onClick={() => { setTabletAccountOpen(false); setCartOpen(true); }}>
                     Cart <span>{cartCount}</span>
+                  </button>
+                  <button type="button" onClick={() => { setTabletAccountOpen(false); handleLogout(); }}>
+                    Log out
                   </button>
                 </>
               ) : (
@@ -1716,22 +1885,11 @@ function App() {
                 </p>
               )
             ) : (
-              <div className="catalog-controls compatibility-tablet-controls">
-                <select
-                  className="compatibility-tablet-select"
-                  aria-label="Select a drawing tablet"
-                  value={selectedTabletId}
-                  onChange={(event) => handleTabletChange(event.target.value)}
-                >
-                  <option value="">Select a drawing tablet</option>
-
-                  {tablets.map((tablet) => (
-                    <option key={tablet.id} value={tablet.id}>
-                      {tablet.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <CompatibilityTabletDropdown
+                tablets={tablets}
+                selectedTabletId={selectedTabletId}
+                onChange={handleTabletChange}
+              />
             )}
 
             {compatibilityLoading && <p>Checking compatible accessories...</p>}
