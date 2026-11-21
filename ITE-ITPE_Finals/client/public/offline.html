@@ -1,0 +1,72 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#ed795e" />
+  <title>You're Offline | Artistry</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      padding: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fffdf9;
+      color: #3f3028;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+
+    main {
+      max-width: 420px;
+    }
+
+    .icon {
+      font-size: 64px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      color: #ed795e;
+      font-size: 32px;
+    }
+
+    p {
+      color: #81786d;
+      line-height: 1.7;
+    }
+
+    button {
+      margin-top: 18px;
+      padding: 13px 24px;
+      border: 0;
+      border-radius: 25px;
+      background: #ed795e;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="icon">🎨</div>
+    <h1>You're Offline</h1>
+    <p>
+      It looks like your internet connection is unavailable.
+      Please reconnect to continue exploring Artistry.
+    </p>
+    <button onclick="window.location.reload()">
+      Try Again
+    </button>
+  </main>
+</body>
+</html>
