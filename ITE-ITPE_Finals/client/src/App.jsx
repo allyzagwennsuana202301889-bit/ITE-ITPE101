@@ -1716,8 +1716,9 @@ function App() {
                 </p>
               )
             ) : (
-              <div className="catalog-controls">
+              <div className="catalog-controls compatibility-tablet-controls">
                 <select
+                  className="compatibility-tablet-select"
                   aria-label="Select a drawing tablet"
                   value={selectedTabletId}
                   onChange={(event) => handleTabletChange(event.target.value)}
