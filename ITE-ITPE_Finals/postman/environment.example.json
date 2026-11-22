@@ -56,6 +56,30 @@
       "value": "1",
       "type": "default",
       "enabled": true
+    },
+    {
+      "key": "orderId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "artKitId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "couponId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "categoryId",
+      "value": "1",
+      "type": "default",
+      "enabled": true
     }
   ],
   "_postman_variable_scope": "environment",

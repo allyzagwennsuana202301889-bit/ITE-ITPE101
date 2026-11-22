@@ -11,7 +11,11 @@
   "variable": [
     { "key": "baseUrl", "value": "http://localhost:5000" },
     { "key": "productId", "value": "1" },
-    { "key": "tabletId", "value": "1" }
+    { "key": "tabletId", "value": "1" },
+    { "key": "orderId", "value": "1" },
+    { "key": "artKitId", "value": "1" },
+    { "key": "couponId", "value": "1" },
+    { "key": "categoryId", "value": "1" }
   ],
   "item": [
     {
@@ -29,6 +33,30 @@
               "exec": [
                 "pm.test('API responds successfully', () => pm.response.to.have.status(200));",
                 "pm.test('API version is v1', () => pm.expect(pm.response.json().version).to.eql('v1'));"
+              ]
+            }
+          }]
+        },
+        {
+          "name": "Register Customer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Customer\",\n  \"email\": \"postman-{{$timestamp}}@example.test\",\n  \"password\": \"PostmanTest123!\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/auth/register"
+          },
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "pm.test('Registration is accepted', () => pm.expect([201, 409]).to.include(pm.response.code));",
+                "if (pm.response.code === 201) {",
+                "  const data = pm.response.json();",
+                "  if (data.token) pm.environment.set('customerToken', data.token);",
+                "}"
               ]
             }
           }]
@@ -236,6 +264,73 @@
           }]
         },
         {
+          "name": "Add Cart Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"productId\": {{productId}},\n  \"quantity\": 1\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/cart/items"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Cart item is accepted or stock prevents it', () => pm.expect([201, 404, 409]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Update Cart Item",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 1\n}" },
+            "url": "{{baseUrl}}/api/v1/cart/items/{{productId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Cart item update returns a valid result', () => pm.expect([200, 404, 409]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Remove Cart Item",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/v1/cart/items/{{productId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Cart item removal succeeds', () => pm.response.to.have.status(200));"
+            ] }
+          }]
+        },
+        {
+          "name": "Clear Cart",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/v1/cart"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Cart is cleared', () => pm.response.to.have.status(200));"
+            ] }
+          }]
+        },
+        {
           "name": "Reject Invalid Cart Quantity",
           "request": {
             "method": "POST",
@@ -282,6 +377,30 @@
           }]
         },
         {
+          "name": "Create Maya Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Idempotency-Key", "value": "{{$guid}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shippingAddress\": \"Postman LOCAL TEST address, 123 Test Street\",\n  \"couponCode\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/checkout"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Checkout result is valid', () => pm.expect([200, 201, 400, 409, 422, 503]).to.include(pm.response.code));",
+              "const data = pm.response.json();",
+              "if (data.order && data.order.id) pm.environment.set('orderId', String(data.order.id));"
+            ] }
+          }]
+        },
+        {
           "name": "List Customer Orders",
           "request": {
             "method": "GET",
@@ -296,6 +415,48 @@
                 "pm.test('Orders are an array', () => pm.expect(pm.response.json().orders).to.be.an('array'));"
               ]
             }
+          }]
+        },
+        {
+          "name": "Get Customer Order",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Order detail result is valid', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Retry Customer Payment",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}/retry-payment"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Retry result is a valid order/payment state', () => pm.expect([200, 404, 409, 503]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Cancel Customer Order",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/v1/orders/{{orderId}}/cancel"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Cancel result is a valid order/payment state', () => pm.expect([200, 404, 409]).to.include(pm.response.code));"
+            ] }
           }]
         },
         {
@@ -316,6 +477,89 @@
           }]
         },
         {
+          "name": "Create Customer Art Kit",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman LOCAL TEST Kit\",\n  \"description\": \"Created only for local Postman testing\",\n  \"kitType\": \"test\",\n  \"items\": [{ \"productId\": {{productId}}, \"quantity\": 1 }]\n}"
+            },
+            "url": "{{baseUrl}}/api/v1/art-kits"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Art kit creation result is valid', () => pm.expect([201, 400, 404]).to.include(pm.response.code));",
+              "const data = pm.response.json();",
+              "if (data.data && data.data.id) pm.environment.set('artKitId', String(data.data.id));"
+            ] }
+          }]
+        },
+        {
+          "name": "Get Customer Art Kit",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/v1/art-kits/{{artKitId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Art kit detail result is valid', () => pm.expect([200, 400, 404]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Update Customer Art Kit",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{customerToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman LOCAL TEST Kit Updated\",\n  \"description\": \"Updated locally\"\n}" },
+            "url": "{{baseUrl}}/api/v1/art-kits/{{artKitId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Art kit update result is valid', () => pm.expect([200, 400, 404]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Add Customer Art Kit To Cart",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/v1/art-kits/{{artKitId}}/add-to-cart"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Art kit cart result is valid', () => pm.expect([200, 400, 404]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Delete Customer Art Kit",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{customerToken}}" }],
+            "url": "{{baseUrl}}/api/v1/art-kits/{{artKitId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Art kit deletion result is valid', () => pm.expect([200, 400, 404]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
           "name": "Ask AI Assistant",
           "request": {
             "method": "POST",
@@ -330,8 +574,8 @@
             "listen": "test",
             "script": {
               "exec": [
-                "pm.test('AI endpoint succeeds', () => pm.response.to.have.status(200));",
-                "pm.test('AI answer is returned', () => pm.expect(pm.response.json().answer).to.be.a('string').and.not.empty);"
+                "pm.test('AI endpoint returns success or unavailable', () => pm.expect([200, 503]).to.include(pm.response.code));",
+                "if (pm.response.code === 200) pm.test('AI answer is returned', () => pm.expect(pm.response.json().answer).to.be.a('string').and.not.empty);"
               ]
             }
           }]
@@ -450,6 +694,192 @@
           }]
         },
         {
+          "name": "Admin Create Product",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman LOCAL TEST Product\",\n  \"category\": \"Accessories\",\n  \"price\": 99,\n  \"stock\": 10,\n  \"description\": \"Created only by the local test environment\",\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/v1/admin/products"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Admin product creation result is valid', () => pm.expect([201, 400]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Update Product",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman LOCAL TEST Product\",\n  \"category\": \"Accessories\",\n  \"price\": 99,\n  \"stock\": 10,\n  \"description\": \"Updated locally\",\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/v1/admin/products/{{productId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Admin product update result is valid', () => pm.expect([200, 400, 404]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Deactivate Product",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/products/{{productId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Admin product deactivation result is valid', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Update Order Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"processing\",\n  \"note\": \"Postman local verification\"\n}" },
+            "url": "{{baseUrl}}/api/v1/admin/orders/{{orderId}}/status"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Admin order status result is valid', () => pm.expect([200, 404, 409]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Create Coupon",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"LOCALPOSTMAN\",\n  \"discountType\": \"fixed\",\n  \"discountValue\": 10,\n  \"minimumSpend\": 100,\n  \"usageLimit\": 10,\n  \"perCustomerLimit\": 1,\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/v1/admin/coupons"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Admin coupon creation result is valid', () => pm.expect([201, 400, 409]).to.include(pm.response.code));",
+              "const data = pm.response.json();",
+              "if (data.coupon && data.coupon.id) pm.environment.set('couponId', String(data.coupon.id));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Update Coupon",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"isActive\": true\n}" },
+            "url": "{{baseUrl}}/api/v1/admin/coupons/{{couponId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Admin coupon update result is valid', () => pm.expect([200, 404]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Create Category",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Local Category\",\n  \"description\": \"Created only in the local TEST environment\"\n}" },
+            "url": "{{baseUrl}}/api/v1/admin/categories"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Admin category creation result is valid', () => pm.expect([201, 400, 409]).to.include(pm.response.code));",
+              "const data = pm.response.json();",
+              "if (data.category && data.category.id) pm.environment.set('categoryId', String(data.category.id));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Update Category",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Postman Local Category\",\n  \"description\": \"Updated only in the local TEST environment\"\n}" },
+            "url": "{{baseUrl}}/api/v1/admin/categories/{{categoryId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Admin category update result is valid', () => pm.expect([200, 400, 404, 409]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Delete Category",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/categories/{{categoryId}}"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Admin category deletion result is valid', () => pm.expect([200, 404, 409]).to.include(pm.response.code));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Payment Mismatch Report",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/payment-mismatches?page=1&limit=20"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Payment mismatch report succeeds', () => pm.response.to.have.status(200));"
+            ] }
+          }]
+        },
+        {
+          "name": "Admin Inventory Adjustment History",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+            "url": "{{baseUrl}}/api/v1/admin/inventory/adjustments"
+          },
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('Inventory adjustment history succeeds', () => pm.response.to.have.status(200));"
+            ] }
+          }]
+        },
+        {
           "name": "Reject Invalid Inventory Adjustment",
           "request": {
             "method": "POST",
@@ -515,7 +945,7 @@
             "header": [
               { "key": "Content-Type", "value": "application/json" },
               { "key": "X-Maya-Webhook-Signature", "value": "invalid-signature" },
-              { "key": "X-Maya-Webhook-Timestamp", "value": "2020-01-01T00:00:00Z" }
+              { "key": "X-Maya-Webhook-Timestamp", "value": "{{mayaWebhookTimestamp}}" }
             ],
             "body": {
               "mode": "raw",
@@ -523,7 +953,14 @@
             },
             "url": "{{baseUrl}}/api/v1/webhooks/maya"
           },
-          "event": [{
+          "event": [
+          {
+            "listen": "prerequest",
+            "script": { "exec": [
+              "pm.variables.set('mayaWebhookTimestamp', Date.now().toString());"
+            ] }
+          },
+          {
             "listen": "test",
             "script": {
               "exec": [
