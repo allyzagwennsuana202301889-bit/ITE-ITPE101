@@ -529,7 +529,10 @@ function App() {
         else openAuth("login");
         setActivePage("shop");
       } else if (location.pathname === "/checkout") {
-        if (user) setCheckoutOpen(true);
+        if (user) {
+          setCartOpen(false);
+          setCheckoutOpen(true);
+        }
         else openAuth("login");
         setActivePage("shop");
       } else if (location.pathname === "/admin" || location.pathname.startsWith("/admin/")) {
@@ -1106,15 +1109,14 @@ function App() {
 
     const storageKey = `artistry_checkout_key_${user.id}`;
 
-    let idempotencyKey = sessionStorage.getItem(storageKey);
-
-    if (!idempotencyKey) {
-      idempotencyKey = crypto.randomUUID();
-      sessionStorage.setItem(storageKey, idempotencyKey);
-    }
-
     try {
       setCartBusy(true);
+
+      let idempotencyKey = sessionStorage.getItem(storageKey);
+      if (!idempotencyKey) {
+        idempotencyKey = crypto.randomUUID();
+        sessionStorage.setItem(storageKey, idempotencyKey);
+      }
 
       const result = await api("/checkout", {
         method: "POST",
@@ -1134,8 +1136,8 @@ function App() {
       sessionStorage.removeItem(storageKey);
       window.location.assign(result.checkoutUrl);
     } catch (e) {
-      alert(e.message);
       setCartBusy(false);
+      throw e;
     }
   }
 
@@ -2207,10 +2209,11 @@ function App() {
         <CheckoutForm
           busy={cartBusy}
           isOnline={isOnline}
-          onClose={() => setCheckoutOpen(false)}
-          onSubmit={(values) => {
-            void checkout(values);
+          onClose={() => {
+            setCheckoutOpen(false);
+            setCartOpen(true);
           }}
+          onSubmit={checkout}
         />
       )}
 
@@ -2230,7 +2233,7 @@ function App() {
             <div className="cart-header">
               <h2>Your Shopping Cart</h2>
 
-              <button onClick={() => setCartOpen(false)}>✕</button>
+              <button type="button" onClick={() => setCartOpen(false)}>✕</button>
             </div>
 
             {cart.length === 0 ? (
@@ -2292,7 +2295,11 @@ function App() {
 
                 <button
                   className="checkout-button"
-                  onClick={() => setCheckoutOpen(true)}
+                  type="button"
+                  onClick={() => {
+                    setCartOpen(false);
+                    setCheckoutOpen(true);
+                  }}
                   disabled={cartBusy || !isOnline}
                   title={!isOnline ? "Reconnect to checkout" : undefined}
                 >

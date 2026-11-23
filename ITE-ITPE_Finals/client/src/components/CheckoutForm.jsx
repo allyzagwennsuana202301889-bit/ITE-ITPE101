@@ -5,7 +5,7 @@ export default function CheckoutForm({ busy, isOnline, onSubmit, onClose }) {
   const [couponCode, setCouponCode] = useState("");
   const [error, setError] = useState("");
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     setError("");
     if (!isOnline) {
@@ -16,7 +16,19 @@ export default function CheckoutForm({ busy, isOnline, onSubmit, onClose }) {
       setError("Enter a complete shipping address (at least 10 characters).");
       return;
     }
-    onSubmit({ shippingAddress: shippingAddress.trim(), couponCode: couponCode.trim() });
+
+    try {
+      await onSubmit({
+        shippingAddress: shippingAddress.trim(),
+        couponCode: couponCode.trim(),
+      });
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Unable to start Maya Checkout. Please try again."
+      );
+    }
   };
 
   return (
@@ -26,7 +38,7 @@ export default function CheckoutForm({ busy, isOnline, onSubmit, onClose }) {
           <h2 id="checkout-title">Checkout details</h2>
           <button type="button" aria-label="Close checkout" onClick={onClose}>✕</button>
         </header>
-        <form className="checkout-form" onSubmit={handleSubmit}>
+        <form className="checkout-form" onSubmit={handleSubmit} noValidate>
           <label htmlFor="shipping-address">Complete shipping address</label>
           <textarea
             id="shipping-address"
