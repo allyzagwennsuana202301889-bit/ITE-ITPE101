@@ -2377,3 +2377,42 @@ footer .brand {
     color: #fff;
   }
 }
+
+.reload-prompt {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  max-width: calc(100vw - 40px);
+  padding: 12px 14px;
+  border: 1px solid #e8e1d7;
+  border-radius: 12px;
+  background: #29251f;
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(41, 37, 31, 0.24);
+  font-weight: 700;
+}
+
+.reload-prompt-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.reload-prompt-actions button {
+  min-height: 36px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #ed795e;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.reload-prompt-actions button:last-child {
+  background: #fff;
+  color: #29251f;
+}

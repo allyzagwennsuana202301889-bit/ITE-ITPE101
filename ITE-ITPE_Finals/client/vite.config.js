@@ -17,7 +17,8 @@ export default defineConfig({
     react(),
 
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
+      injectRegister: "script",
 
       manifest: {
         name: "Artistry",
@@ -32,20 +33,20 @@ export default defineConfig({
 
         icons: [
           {
-            src: "/pwa-192x192.png",
+            src: "/icons/icon-192.png",
             sizes: "192x192",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: "/pwa-512x512.png",
+            src: "/icons/icon-512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable",
           },
         ],
       },
-      includeAssets: ["favicon.svg", "offline.html", "pwa-192x192.png", "pwa-512x512.png"],
+      includeAssets: ["favicon.svg", "offline.html", "icons/icon-192.png", "icons/icon-512.png"],
 
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,jpg,jpeg,webp}"],
@@ -53,6 +54,21 @@ export default defineConfig({
         navigateFallbackDenylist: [/^\/api\//, /^\/auth\//, /^\/checkout/, /^\/webhooks\//],
 
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/api"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "api-cache",
+              networkTimeoutSeconds: 5,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 86400,
+              },
+              cacheableResponse: {
+                statuses: [0, 200],
+              },
+            },
+          },
           {
             urlPattern: ({ url, request }) =>
               request.method === "GET" &&

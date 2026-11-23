@@ -25,10 +25,18 @@ const PORT = process.env.PORT || 5000;
 
 app.disable("x-powered-by");
 
+const localPreviewOrigins = [
+  "http://localhost:4173",
+  "http://127.0.0.1:4173",
+];
+const configuredClientOrigins = process.env.CLIENT_ORIGIN
+  ? process.env.CLIENT_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean)
+  : null;
+
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN
-      ? process.env.CLIENT_ORIGIN.split(",").map((x) => x.trim())
+    origin: configuredClientOrigins
+      ? [...new Set([...configuredClientOrigins, ...localPreviewOrigins])]
       : true,
   })
 );

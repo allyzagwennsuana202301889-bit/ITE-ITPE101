@@ -2,15 +2,12 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { registerSW } from "virtual:pwa-register";
 import "./index.css";
 import App from "./App.jsx";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import { CartProvider } from "./context/CartContext";
 import { NetworkStatusProvider } from "./context/NetworkStatusContext";
-
-registerSW({ immediate: true });
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>

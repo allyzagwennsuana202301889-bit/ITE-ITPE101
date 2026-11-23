@@ -4,6 +4,7 @@ import "./App.css";
 import AuthModal from "./AuthModal";
 import { api } from "./api";
 import OfflineBanner from "./components/OfflineBanner";
+import ReloadPrompt from "./components/ReloadPrompt";
 import BottomNav from "./components/BottomNav";
 import SkeletonLoader from "./components/SkeletonLoader";
 import CheckoutForm from "./components/CheckoutForm";
@@ -1317,6 +1318,7 @@ function App() {
       </header>
 
       <OfflineBanner isOnline={isOnline} />
+      <ReloadPrompt />
 
       {!adminOpen && !ordersOpen && (
         <BottomNav
