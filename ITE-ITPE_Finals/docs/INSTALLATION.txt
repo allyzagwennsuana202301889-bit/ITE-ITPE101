@@ -1,0 +1,243 @@
+ARTISTRY - INSTALLATION GUIDE
+=============================
+
+Purpose
+-------
+This guide provides local setup and deployment preparation instructions for the
+Artistry React/Vite frontend and Express/Sequelize backend.
+
+For an overview of features and repository structure, read README.md.
+
+
+SECURITY
+--------
+- Do not commit server/.env or client/.env.
+- Add real credentials only to environment configuration.
+- Use separate database and account credentials for development and TEST data.
+- Never commit database passwords, JWT secrets, Maya keys, or Groq API keys.
+- If a secret has been exposed, rotate it before continuing development.
+
+
+REQUIREMENTS
+------------
+- Node.js LTS and npm
+- MySQL Server
+- A MySQL client such as phpMyAdmin, optional
+- Postman Desktop, optional
+- Maya sandbox credentials, only for payment testing
+- A Groq API key, only for AI-assistant testing
+
+
+1. GET THE PROJECT
+------------------
+Clone the repository:
+
+  git clone https://github.com/allyzagwennsuana202301889-bit/ITE-ITPE101.git
+  cd ITE-ITPE101/ITE-ITPE_Finals
+
+If using an archive, extract it and open a terminal in ITE-ITPE_Finals.
+
+
+2. CREATE A LOCAL DATABASE
+--------------------------
+Start MySQL and create a dedicated development or TEST database:
+
+  CREATE DATABASE artistry_db;
+
+Do not run seed scripts or destructive test procedures against production data.
+Back up the database before seeding or testing.
+
+
+3. CONFIGURE THE BACKEND
+------------------------
+In ITE-ITPE_Finals/server/, copy .env.example to .env.
+
+Minimum database and authentication values:
+
+  PORT=5000
+  DB_NAME=artistry_db
+  DB_USER=root
+  DB_PASSWORD=your_mysql_password
+  DB_HOST=localhost
+  DB_PORT=3306
+  JWT_SECRET=replace_with_a_random_secret_at_least_32_characters
+  JWT_EXPIRES_IN=7d
+  CLIENT_ORIGIN=http://localhost:5173
+
+JWT_SECRET is required and must contain at least 32 characters. The backend
+will refuse to start if it is missing or too short.
+
+Optional application variables:
+
+  CLIENT_URL=http://localhost:5173
+  SHIPPING_FEE=80
+  DB_SSL_CA_PATH=
+
+CLIENT_URL controls Maya payment return URLs. SHIPPING_FEE controls checkout
+totals and defaults to 80. DB_SSL_CA_PATH is only needed when a MySQL provider
+requires a CA certificate file.
+
+Optional Maya variables:
+
+  MAYA_BASE_URL=https://pg-sandbox.paymaya.com
+  MAYA_PUBLIC_KEY=your_maya_public_key
+  MAYA_SECRET_KEY=your_maya_secret_key
+  MAYA_WEBHOOK_BASE_URL=https://your-public-backend.example
+
+MAYA_BASE_URL defaults to the Maya sandbox endpoint. MAYA_PUBLIC_KEY and
+MAYA_SECRET_KEY are needed for Maya checkout and verification operations.
+MAYA_WEBHOOK_BASE_URL is used by the webhook registration/update scripts, not
+by ordinary API startup.
+
+Optional AI variable:
+
+  GROQ_API_KEY=your_groq_api_key
+
+Optional demonstration seed variables:
+
+  SEED_ADMIN_EMAIL=admin@artistry.local
+  SEED_ADMIN_NAME=Artistry Admin
+  SEED_ADMIN_PASSWORD=change_this_admin_password
+  SEED_CUSTOMER1_EMAIL=customer1@artistry.local
+  SEED_CUSTOMER1_PASSWORD=change_this_customer_password
+  SEED_CUSTOMER2_EMAIL=customer2@artistry.local
+  SEED_CUSTOMER2_PASSWORD=change_this_customer_password
+
+Each seed password must contain at least eight characters. The supplied
+.env.example is a configuration template and does not include every optional
+variable; add only the variables needed for the selected feature.
+
+
+4. INSTALL DEPENDENCIES
+-----------------------
+In ITE-ITPE_Finals/server/:
+
+  npm install
+
+In ITE-ITPE_Finals/client/:
+
+  npm install
+
+
+5. START THE BACKEND
+--------------------
+From ITE-ITPE_Finals/server/:
+
+  npm run dev
+
+The backend normally starts at http://localhost:5000.
+
+Startup verifies MySQL connectivity and runs Sequelize model synchronization.
+It also starts the order-expiration and Maya-reconciliation scheduled jobs.
+Database migrations are not provided as a general migration workflow; for
+production schema changes, plan and apply migrations explicitly rather than
+relying only on automatic synchronization.
+
+
+6. START THE FRONTEND
+---------------------
+From ITE-ITPE_Finals/client/:
+
+  npm run dev
+
+Open the Vite URL shown in the terminal, normally http://localhost:5173.
+
+The default development API path is /api/v1. For a local backend, create
+client/.env if needed:
+
+  VITE_API_URL=http://localhost:5000/api/v1
+
+The supplied client/.env.example is a commented template. If VITE_API_URL is
+omitted in development, client/vite.config.js proxies /api/v1 to the currently
+configured hosted backend.
+
+
+7. OPTIONAL DEMONSTRATION DATA
+------------------------------
+Configure SEED_ADMIN_PASSWORD, SEED_CUSTOMER1_PASSWORD, and
+SEED_CUSTOMER2_PASSWORD in server/.env. Then run:
+
+  npm run seed:phase1
+
+The seed script creates missing categories, products, three demo accounts, and
+three coupons. It does not deliberately replace existing records. Use it only
+for a database intended for demonstration or testing.
+
+
+8. VERIFY THE INSTALLATION
+--------------------------
+With the backend running:
+
+- Backend root: http://localhost:5000/
+- API prefix: http://localhost:5000/api/v1
+- Swagger UI: http://localhost:5000/api-docs
+- Product endpoint: http://localhost:5000/api/v1/products
+
+For API testing, import postman/collection.json and
+postman/environment.example.json, then select Artistry Local TEST.
+
+
+QUALITY CHECKS
+--------------
+From ITE-ITPE_Finals/client/:
+
+  npm run lint
+  npm run build
+
+From ITE-ITPE_Finals/server/:
+
+  npm test
+
+The server package defines npm test through node --test. Additional standalone
+Maya/checkout test scripts exist outside that general test command. Inspect
+their database restrictions before running them.
+
+
+DEPLOYMENT PREPARATION
+----------------------
+- Deploy the Express backend as a Node.js service.
+- Deploy the Vite frontend as a static site or web service.
+- Configure the production MySQL database and required environment variables.
+- Set CLIENT_ORIGIN to the frontend origin(s) allowed by CORS.
+- Set CLIENT_URL to the frontend origin used for Maya redirect URLs.
+- Set VITE_API_URL to the deployed API base ending in /api/v1.
+- Configure Maya and Groq secrets only on the backend host.
+- Configure Maya webhook delivery only with a publicly reachable webhook URL.
+- Keep test databases, test credentials, and test-only scripts separate from
+  production resources.
+
+
+TROUBLESHOOTING
+---------------
+JWT_SECRET must be set:
+  Set server/.env to a random value of at least 32 characters.
+
+MySQL connection failure:
+  Confirm that MySQL is running, DB_NAME exists, and DB_USER/DB_PASSWORD are
+  valid for this host and database.
+
+Port already in use:
+  Change PORT in server/.env and set VITE_API_URL to the matching local URL.
+
+Frontend cannot reach the backend:
+  Start both servers. Confirm VITE_API_URL ends in /api/v1, or rely on the
+  configured Vite proxy and confirm it targets the intended backend.
+
+CORS rejection:
+  Set CLIENT_ORIGIN to the exact frontend origin or a comma-separated list.
+
+Maya or Groq requests fail:
+  Confirm the corresponding credentials and public URLs are configured.
+  Maya and Groq credentials are not needed for ordinary catalog/account setup.
+
+
+EXISTING DEPLOYMENT REFERENCES
+------------------------------
+- Frontend: https://ite-itpe-101.vercel.app
+- Backend: https://ite-itpe101.onrender.com
+- API root: https://ite-itpe101.onrender.com/
+- Product endpoint: https://ite-itpe101.onrender.com/api/v1/products
+- API documentation: https://ite-itpe101.onrender.com/api-docs
+
+These are repository/deployment references, not guarantees of current service
+availability.
